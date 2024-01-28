@@ -1,11 +1,7 @@
 package ru.javaops.masterjava.matrix;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * gkislin
@@ -18,37 +14,35 @@ public class MatrixUtil {
         final int matrixSize = matrixA.length;
         final int[][] matrixC = new int[matrixSize][matrixSize];
 
-        List<Future<?>> futureList = new ArrayList<>(matrixSize);
+        CompletionService<Object> service = new ExecutorCompletionService<>(executor);
 
         for (int j = 0; j < matrixSize; j++) {
             int finalJ = j;
-            futureList.add(
-                    executor.submit(() -> calculate(matrixA, matrixB, matrixC, finalJ, matrixSize))
-            );
-        }
 
-        for (Future<?> future : futureList) {
-            future.get();
-        }
+            int[] kColumns = new int[matrixSize];
 
-        return matrixC;
-    }
+            for (int k = 0; k < matrixSize; k++) {
+                kColumns[k] = matrixB[k][j];
+            }
 
-    private static void calculate(int[][] matrixA, int[][] matrixB, int[][] matrixC, int row, int matrixSize) {
-        int[] kColumns = new int[matrixSize];
-
-        for (int k = 0; k < matrixSize; k++) {
-            kColumns[k] = matrixB[k][row];
+            service.submit(() -> {
+                for (int i = 0; i < matrixSize; i++) {
+                    int[] iRows = matrixA[i];
+                    int sum = 0;
+                    for (int k = 0; k < matrixSize; k++) {
+                        sum += kColumns[k] * iRows[k];
+                    }
+                    matrixC[i][finalJ] = sum;
+                }
+                return null;
+            });
         }
 
         for (int i = 0; i < matrixSize; i++) {
-            int[] iRows = matrixA[i];
-            int sum = 0;
-            for (int k = 0; k < matrixSize; k++) {
-                sum += kColumns[k] * iRows[k];
-            }
-            matrixC[i][row] = sum;
+            service.take();
         }
+
+        return matrixC;
     }
 
     // matrixA
