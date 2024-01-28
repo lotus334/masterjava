@@ -1,8 +1,11 @@
 package ru.javaops.masterjava.matrix;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 /**
  * gkislin
@@ -15,11 +18,80 @@ public class MatrixUtil {
         final int matrixSize = matrixA.length;
         final int[][] matrixC = new int[matrixSize][matrixSize];
 
+        List<Future<?>> futureList = new ArrayList<>(matrixSize);
+
+        for (int j = 0; j < matrixSize; j++) {
+            int finalJ = j;
+            futureList.add(
+                    executor.submit(() -> calculate(matrixA, matrixB, matrixC, finalJ, matrixSize))
+            );
+        }
+
+        for (Future<?> future : futureList) {
+            future.get();
+        }
+
         return matrixC;
     }
 
-    // TODO optimize by https://habrahabr.ru/post/114797/
-    public static int[][] singleThreadMultiply(int[][] matrixA, int[][] matrixB) {
+    private static void calculate(int[][] matrixA, int[][] matrixB, int[][] matrixC, int row, int matrixSize) {
+        int[] kColumns = new int[matrixSize];
+
+        for (int k = 0; k < matrixSize; k++) {
+            kColumns[k] = matrixB[k][row];
+        }
+
+        for (int i = 0; i < matrixSize; i++) {
+            int[] iRows = matrixA[i];
+            int sum = 0;
+            for (int k = 0; k < matrixSize; k++) {
+                sum += kColumns[k] * iRows[k];
+            }
+            matrixC[i][row] = sum;
+        }
+    }
+
+    // matrixA
+    // [ 1, 2, 3 ]
+    // [ 4, 5, 6 ]
+    // [ 7, 8, 9 ]
+
+    // matrixB
+    // [ 1, 1, 1 ]
+    // [ 2, 2, 2 ]
+    // [ 3, 3, 3 ]
+
+    // matrixC
+    // [ 96, _, _ ]
+    // [ _, _, _ ]
+    // [ _, _, _ ]
+
+    // optimized by https://habrahabr.ru/post/114797/
+    public static int[][] singleThreadMultiply(final int[][] matrixA, final int[][] matrixB) {
+        final int matrixSize = matrixA.length;
+        final int[][] matrixC = new int[matrixSize][matrixSize];
+
+        int[] kColumns = new int[matrixSize];
+
+        for (int j = 0; j < matrixSize; j++) {
+            for (int k = 0; k < matrixSize; k++) {
+                kColumns[k] = matrixB[k][j];
+            }
+
+            for (int i = 0; i < matrixSize; i++) {
+                int[] iRows = matrixA[i];
+                int sum = 0;
+                for (int k = 0; k < matrixSize; k++) {
+                    sum += kColumns[k] * iRows[k];
+                }
+                matrixC[i][j] = sum;
+            }
+        }
+
+        return matrixC;
+    }
+
+    public static int[][] originalSingleThreadMultiply(int[][] matrixA, int[][] matrixB) {
         final int matrixSize = matrixA.length;
         final int[][] matrixC = new int[matrixSize][matrixSize];
 

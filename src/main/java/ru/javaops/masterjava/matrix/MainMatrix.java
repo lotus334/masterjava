@@ -39,6 +39,12 @@ public class MainMatrix {
                 System.err.println("Comparison failed");
                 break;
             }
+
+            if (!MatrixUtil.compare(matrixC, MatrixUtil.originalSingleThreadMultiply(matrixA, matrixB))) {
+                System.err.println("Original comparison failed");
+                break;
+            }
+
             count++;
         }
         executor.shutdown();
